@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Circle Practice Clock</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind setup for dark mode and some design tokens
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['ui-sans-serif', 'system-ui', 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial'],
+          },
+          boxShadow: {
+            glow: '0 0 0 2px rgba(0,0,0,0.05), 0 20px 35px -15px rgba(0,0,0,0.25)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Range input as "digital knob" (simple, accessible) */
+    input[type=range].dial {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 120px; /* then rotate to vertical */
+      height: 120px;
+      background: transparent;
+      transform: rotate(-90deg);
+    }
+    input[type=range].dial:focus { outline: none; }
+    input[type=range].dial::-webkit-slider-runnable-track {
+      height: 10px; border-radius: 9999px;
+      background: linear-gradient(90deg, rgba(0,0,0,0.15), rgba(0,0,0,0.05));
+    }
+    .dark input[type=range].dial::-webkit-slider-runnable-track {
+      background: linear-gradient(90deg, rgba(255,255,255,0.25), rgba(255,255,255,0.1));
+    }
+    input[type=range].dial::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 26px; height: 26px; border-radius: 9999px; background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      border: 2px solid rgba(0,0,0,0.2);
+      transform: translateY(-8px);
+    }
+    .dark input[type=range].dial::-webkit-slider-thumb {
+      background: #0f172a; border-color: rgba(255,255,255,0.25);
+    }
+    input[type=range].dial::-moz-range-track {
+      height: 10px; border-radius: 9999px; background: rgba(0,0,0,0.1);
+    }
+    input[type=range].dial::-moz-range-thumb {
+      width: 26px; height: 26px; border-radius: 9999px; background: white; border: 2px solid rgba(0,0,0,0.2);
+    }
+
+    /* LED dots */
+    .led { width: 12px; height: 12px; border-radius: 9999px; opacity: 0.25; }
+    .led.on { opacity: 1; }
+
+    /* Perimeter grid cells */
+    .cell { user-select: none; }
+    .cell .pill { transition: transform 0.12s ease, opacity 0.12s ease; }
+    .cell.active .pill { transform: scale(2.0); } /* your clearer highlight */
+
+    /* Countdown overlay */
+    .count-overlay { backdrop-filter: blur(2px); }
+  </style>
+</head>
+<body class="h-full bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-display">
+  <div id="app" class="min-h-screen flex flex-col items-center">
+    <!-- Header / Toolbar -->
+    <header class="w-full max-w-6xl px-4 md:px-6 pt-6 pb-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 shadow-glow"></div>
+        <h1 class="text-xl md:text-2xl font-semibold tracking-tight">Circle Practice Clock</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <label class="inline-flex items-center gap-2 text-sm cursor-pointer select-none">
+          <input id="metronomeToggle" type="checkbox" class="toggle accent-indigo-600">
+          <span>Metronome</span>
+        </label>
+        <button id="themeBtn" class="px-3 py-2 rounded-xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 text-sm shadow-sm">
+          <span id="themeLabel">Dark</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main stage -->
+    <main class="w-full max-w-6xl px-4 md:px-6 pb-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Clock / Grid -->
+      <section class="relative aspect-square w-full max-w-[720px] mx-auto rounded-3xl bg-white/80 dark:bg-slate-800/70 shadow-glow border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <!-- Countdown Overlay -->
+        <div id="countOverlay" class="hidden absolute inset-0 bg-white/70 dark:bg-slate-900/60 count-overlay flex items-center justify-center">
+          <div id="countText" class="text-7xl md:text-8xl font-bold tracking-tight"></div>
+        </div>
+
+        <!-- 5x5 Grid -->
+        <div id="grid" class="absolute inset-4 grid grid-cols-5 grid-rows-5 gap-2 select-none">
+          <!-- Cells will be injected by JS -->
+        </div>
+
+        <!-- Center Note + LEDs (stacked center) -->
+        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <div id="currentNote" class="text-7xl md:text-8xl font-bold tracking-tight drop-shadow-sm"></div>
+          <div class="mt-4 flex items-center gap-2" id="ledRow">
+            <!-- LED dots injected -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Controls -->
+      <section class="w-full">
+        <div class="rounded-3xl bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 shadow-glow p-5 md:p-6">
+          <div class="flex flex-wrap gap-4 items-center justify-between">
+            <div class="flex items-center gap-3">
+              <label class="text-sm text-slate-500 dark:text-slate-400">Start Note</label>
+              <select id="startNote" class="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm">
+              </select>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-sm text-slate-500 dark:text-slate-400">Accidentals</label>
+              <select id="accMode" class="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm">
+                <option value="flats" selected>♭ (Db, Eb)</option>
+                <option value="sharps">♯ (C#, D#)</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-sm text-slate-500 dark:text-slate-400">Chaos</label>
+              <select id="chaos" class="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm">
+                <option value="0">0%</option>
+                <option value="5">5%</option>
+                <option value="50">50%</option>
+                <option value="100">100%</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+            <!-- Tempo -->
+            <div class="flex flex-col items-center">
+              <div class="h-28 flex items-center justify-center">
+                <input id="tempo" type="range" min="40" max="240" value="100" class="dial" />
+              </div>
+              <div class="text-center mt-2">
+                <div class="text-sm text-slate-500 dark:text-slate-400">Tempo</div>
+                <div class="text-xl font-semibold"><span id="tempoVal">100</span> BPM</div>
+              </div>
+            </div>
+            <!-- Signature (beats per note) -->
+            <div class="flex flex-col items-center">
+              <div class="h-28 flex items-center justify-center">
+                <input id="signature" type="range" min="1" max="8" value="4" class="dial" />
+              </div>
+              <div class="text-center mt-2">
+                <div class="text-sm text-slate-500 dark:text-slate-400">Beats / Note</div>
+                <div class="text-xl font-semibold"><span id="sigVal">4</span></div>
+              </div>
+            </div>
+            <!-- Interval steps -->
+            <div class="flex flex-col items-center">
+              <div class="h-28 flex items-center justify-center">
+                <input id="intervalSteps" type="range" min="1" max="11" value="7" class="dial" />
+              </div>
+              <div class="text-center mt-2">
+                <div class="text-sm text-slate-500 dark:text-slate-400">Interval</div>
+                <div class="text-xl font-semibold"><span id="intVal">7</span></div>
+              </div>
+            </div>
+            <!-- Direction -->
+            <div class="flex flex-col items-center">
+              <div class="h-28 flex items-center justify-center">
+                <div class="flex items-center gap-2">
+                  <button id="dirDown" class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-sm">Down</button>
+                  <button id="dirUp" class="px-3 py-2 rounded-xl border border-slate-900 dark:border-slate-200 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 text-sm">Up</button>
+                </div>
+              </div>
+              <div class="text-center mt-2">
+                <div class="text-sm text-slate-500 dark:text-slate-400">Direction</div>
+                <div class="text-xl font-semibold" id="dirLabel">Up</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <button id="startBtn" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">Start</button>
+              <button id="stopBtn" class="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100">Stop</button>
+            </div>
+            <div class="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+              <label class="inline-flex items-center gap-2 select-none">
+                <input id="accentToggle" type="checkbox" class="accent-indigo-600" checked>
+                <span>Accent first beat</span>
+              </label>
+              <label class="inline-flex items-center gap-2 select-none">
+                <input id="countInToggle" type="checkbox" class="accent-indigo-600" checked>
+                <span>3-2-1 count-in</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <p class="mt-4 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+          Tips: Click any perimeter note to jump there instantly. On phones, rotate to landscape for the largest clock. No accounts, no storage. Pure front-end.
+        </p>
+      </section>
+    </main>
+
+    <footer class="w-full max-w-6xl px-4 md:px-6 pb-8 text-xs text-slate-500 dark:text-slate-400">
+      Built for players who love practicing with a living Circle. © 2025
+    </footer>
+  </div>
+
+  <script>
+  // --- Notes & Helpers ---
+  const NOTES_FLATS = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+  const NOTES_SHARPS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+  function mod(n,m){ return ((n % m) + m) % m; }
+  function getNotes(mode){ return mode==='sharps' ? NOTES_SHARPS : NOTES_FLATS; }
+
+  // UI refs
+  const startNoteSel = document.getElementById('startNote');
+  const accSel       = document.getElementById('accMode');
+  const tempoInput   = document.getElementById('tempo');
+  const tempoVal     = document.getElementById('tempoVal');
+  const sigInput     = document.getElementById('signature');
+  const sigVal       = document.getElementById('sigVal');
+  const intInput     = document.getElementById('intervalSteps');
+  const intVal       = document.getElementById('intVal');
+  const dirDownBtn   = document.getElementById('dirDown');
+  const dirUpBtn     = document.getElementById('dirUp');
+  const dirLabel     = document.getElementById('dirLabel');
+  const chaosSel     = document.getElementById('chaos');
+  const metronomeToggle = document.getElementById('metronomeToggle');
+  const accentToggle    = document.getElementById('accentToggle');
+  const countInToggle   = document.getElementById('countInToggle');
+
+  const currentNoteEl = document.getElementById('currentNote');
+  const ledRow        = document.getElementById('ledRow');
+  const gridEl        = document.getElementById('grid');
+
+  // Build Start Note options
+  function populateStartNotes(){
+    const arr = getNotes(accSel.value);
+    startNoteSel.innerHTML = arr.map(n=>`<option value="${n}">${n}</option>`).join('');
+    if(!arr.includes(startNoteSel.value)) startNoteSel.value='A';
+  }
+  populateStartNotes();
+
+  // Perimeter layout (clockwise)
+  const POSITIONS = [[1,2],[1,3],[1,4],[2,5],[3,5],[4,5],[5,4],[5,3],[5,2],[4,1],[3,1],[2,1]];
+  const START_POS = 1; // top-center index in POSITIONS
+  let perimeterCells = [];
+
+  // State for music + ring
+  let direction = +1; // +1 up, -1 down
+  let currentIndex = getNotes(accSel.value).indexOf(startNoteSel.value); // index in current notes array
+  let posCursor = START_POS; // which perimeter cell (0..11) is active RIGHT NOW
+
+  function currentNotesArr(){ return getNotes(accSel.value); }
+  function currentNoteName(){ return currentNotesArr()[currentIndex]; }
+  function setCurrentByName(name){
+    const idx = currentNotesArr().indexOf(name);
+    if(idx!==-1) currentIndex = idx;
+  }
+
+  function buildGrid(){
+    gridEl.innerHTML=''; perimeterCells=[];
+    const map = new Map(POSITIONS.map((p,i)=>[p.join(','),i]));
+    for(let r=1;r<=5;r++){
+      for(let c=1;c<=5;c++){
+        const key = `${r},${c}`;
+        const isPerimeter = map.has(key);
+        const cell = document.createElement('div');
+        cell.className='cell relative flex items-center justify-center';
+        if(isPerimeter){
+          const idx = map.get(key);
+          const pill = document.createElement('div');
+          pill.className='pill px-2.5 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-700/90 border border-slate-300/70 dark:border-slate-600/70 text-sm md:text-base font-medium shadow-sm';
+          pill.textContent='-';
+          cell.appendChild(pill);
+
+          // Click to jump: set cursor to this exact perimeter index (fixes duplicates)
+          cell.addEventListener('click',()=>{
+            posCursor = idx;
+            setCurrentByName(pill.textContent);
+            recalcRing();
+            currentNoteEl.textContent = currentNoteName();
+          });
+
+          perimeterCells[idx]=pill;
+        }else{
+          cell.classList.add('opacity-40');
+        }
+        gridEl.appendChild(cell);
+      }
+    }
+  }
+  buildGrid();
+
+  // Recalculate the entire perimeter ring from the CURRENT note & cursor.
+  // Ensures duplicates are placed correctly and the active cursor moves through all 12 cells.
+  function recalcRing(){
+    const arr  = currentNotesArr();
+    const step = Number(intInput.value) * (direction>0?1:-1);
+
+    // Fill labels: current note at posCursor; future notes clockwise
+    for(let k=0;k<12;k++){
+      const cellIdx = (posCursor + k) % 12;
+      const noteIdx = mod(currentIndex + k*step, 12);
+      perimeterCells[cellIdx].textContent = arr[noteIdx];
+    }
+
+    // Highlight only the cursor cell
+    perimeterCells.forEach(p=>p.parentElement.classList.remove('active'));
+    const activeCell = perimeterCells[mod(posCursor,12)];
+    if(activeCell) activeCell.parentElement.classList.add('active');
+  }
+
+  function updateDirUI(){
+    dirLabel.textContent = direction>0?'Up':'Down';
+    dirUpBtn.classList.toggle('bg-slate-900', direction>0);
+    dirUpBtn.classList.toggle('text-white', direction>0);
+    dirUpBtn.classList.toggle('dark:bg-slate-100', direction>0);
+    dirUpBtn.classList.toggle('dark:text-slate-900', direction>0);
+    dirDownBtn.classList.toggle('bg-slate-900', direction<0);
+    dirDownBtn.classList.toggle('text-white', direction<0);
+    dirDownBtn.classList.toggle('dark:bg-slate-100', direction<0);
+    dirDownBtn.classList.toggle('dark:text-slate-900', direction<0);
+    recalcRing(); renderCenter();
+  }
+
+  function renderCenter(){
+    currentNoteEl.textContent = currentNoteName();
+    // Do NOT touch LEDs here (prevents clearing LED 0)
+  }
+
+  dirDownBtn.addEventListener('click',()=>{ direction=-1; updateDirUI(); });
+  dirUpBtn  .addEventListener('click',()=>{ direction=+1; updateDirUI(); });
+
+  tempoInput.addEventListener('input',()=>{ tempoVal.textContent=tempoInput.value; });
+  sigInput  .addEventListener('input',()=>{ sigVal.textContent=sigInput.value; buildLEDs(); });
+  intInput  .addEventListener('input',()=>{ intVal.textContent=intInput.value; recalcRing(); renderCenter(); });
+
+  accSel.addEventListener('change',()=>{
+    const prevName = currentNoteName();
+    populateStartNotes();
+    setCurrentByName(prevName);        // map to new accidental set
+    recalcRing();
+    renderCenter();
+  });
+
+  startNoteSel.addEventListener('change',()=>{
+    setCurrentByName(startNoteSel.value);
+    posCursor = START_POS;             // anchor top-center when user picks a new start
+    recalcRing(); renderCenter();
+  });
+
+  // LEDs
+  function buildLEDs(){
+    ledRow.innerHTML='';
+    const n = Number(sigInput.value);
+    for(let i=0;i<n;i++){
+      const dot = document.createElement('div');
+      dot.className='led bg-slate-300 dark:bg-slate-600';
+      ledRow.appendChild(dot);
+    }
+  }
+  function renderLEDs(activeIdx=-1){
+    const dots = ledRow.querySelectorAll('.led');
+    dots.forEach((d,i)=>d.classList.toggle('on', i===activeIdx));
+    dots.forEach((d,i)=>d.style.backgroundColor = i===activeIdx ? 'rgb(99 102 241)' : '');
+  }
+
+  // Initial paint
+  buildLEDs();
+  posCursor = START_POS;
+  recalcRing();
+  renderCenter();
+
+  // --- Transport & Audio ---
+  let audioCtx=null, isRunning=false, lookaheadTimer=null;
+  let nextBeatTime=0, beatCount=0, countInBeatsLeft=0;
+
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn  = document.getElementById('stopBtn');
+  const overlay  = document.getElementById('countOverlay');
+  const overlayText = document.getElementById('countText');
+
+  function secondsPerBeat(){ return 60/Number(tempoInput.value); }
+
+  function scheduleClick(time, accented=false){
+    if(!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain= audioCtx.createGain();
+    osc.type='square';
+    osc.frequency.setValueAtTime(accented?1800:1200,time);
+    gain.gain.setValueAtTime(0.0001,time);
+    gain.gain.exponentialRampToValueAtTime(accented?0.15:0.08,time+0.001);
+    gain.gain.exponentialRampToValueAtTime(0.0001,time+0.04);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(time); osc.stop(time+0.05);
+  }
+
+  function scheduler(){
+    const lookahead=0.1;
+    while(nextBeatTime < audioCtx.currentTime + lookahead){
+      const spb = secondsPerBeat();
+      const inCountIn = countInBeatsLeft>0;
+      const beatsPerNote = Number(sigInput.value);
+      const isDownbeat = beatCount % beatsPerNote === 0;
+
+      if(metronomeToggle.checked){
+        const accented = inCountIn || (accentToggle.checked && isDownbeat);
+        scheduleClick(nextBeatTime, accented);
+      }
+
+      const ledIndex = mod(beatCount, beatsPerNote);
+      if(inCountIn){
+        const show = Math.min(3, countInBeatsLeft);
+        overlayText.textContent = show.toString();
+        overlay.classList.remove('hidden');
+        countInBeatsLeft -= 1;
+        if(countInBeatsLeft===0){ beatCount = 0; } // first post-count-in beat = LED 0
+      }else{
+        overlay.classList.add('hidden');
+        renderLEDs(ledIndex);                 // LED 0 lights on first downbeat
+        if(ledIndex===0 && beatCount>0){      // advance AFTER completing a note’s beats
+          advanceNoteAndRing();
+        }
+      }
+
+      beatCount += 1;
+      nextBeatTime += spb;
+    }
+    lookaheadTimer = setTimeout(scheduler,25);
+  }
+
+  function advanceNoteAndRing(){
+    // move cursor forward one perimeter cell (always clockwise visually)
+    posCursor = (posCursor + 1) % 12;
+
+    // update the musical note (chaos or interval step)
+    const chaosPct = Number(chaosSel.value);
+    if(chaosPct>0 && Math.random()*100 < chaosPct){
+      let r; do{ r=Math.floor(Math.random()*12); } while(r===currentIndex);
+      currentIndex = r;
+    }else{
+      const step = Number(intInput.value) * (direction>0?1:-1);
+      currentIndex = mod(currentIndex + step, 12);
+    }
+
+    // rebuild the ring so the CURRENT note sits at the CURRENT cursor
+    recalcRing();
+    renderCenter();
+  }
+
+  function start(){
+    if(isRunning) return;
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    setCurrentByName(startNoteSel.value);
+    posCursor = START_POS;
+    recalcRing();
+    renderCenter();
+    renderLEDs(-1);
+    beatCount = 0;
+    countInBeatsLeft = countInToggle.checked ? 3 : 0;
+    nextBeatTime = audioCtx.currentTime + 0.1;
+    isRunning = true;
+    scheduler();
+  }
+
+  function stop(){
+    isRunning=false;
+    if(lookaheadTimer){ clearTimeout(lookaheadTimer); lookaheadTimer=null; }
+    renderLEDs(-1);
+    overlay.classList.add('hidden');
+  }
+
+  startBtn.addEventListener('click', async ()=>{
+    if(audioCtx && audioCtx.state==='suspended') await audioCtx.resume();
+    start();
+  });
+  stopBtn.addEventListener('click', stop);
+
+  sigInput.addEventListener('change', ()=>{ buildLEDs(); renderLEDs(-1); });
+
+  // Theme toggle
+  const themeBtn = document.getElementById('themeBtn');
+  const themeLabel = document.getElementById('themeLabel');
+  themeBtn.addEventListener('click', ()=>{
+    const html = document.documentElement;
+    const isDark = html.classList.contains('dark');
+    html.classList.toggle('dark', !isDark);
+    themeLabel.textContent = !isDark ? 'Light' : 'Dark';
+    // no need to recompute ring here; colors are CSS-driven
+  });
+  </script>
+
+</body>
+</html>
