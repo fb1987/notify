@@ -21,9 +21,8 @@
     }
   </script>
   <style>
-    input[type=range].dial{
-      -webkit-appearance:none;appearance:none;width:120px;height:120px;background:transparent;transform:rotate(-90deg)
-    }
+    /* digital knobs */
+    input[type=range].dial{ -webkit-appearance:none;appearance:none;width:120px;height:120px;background:transparent;transform:rotate(-90deg) }
     input[type=range].dial:focus{outline:none}
     input[type=range].dial::-webkit-slider-runnable-track{height:10px;border-radius:9999px;background:linear-gradient(90deg,rgba(0,0,0,.15),rgba(0,0,0,.05))}
     .dark input[type=range].dial::-webkit-slider-runnable-track{background:linear-gradient(90deg,rgba(255,255,255,.25),rgba(255,255,255,.1))}
@@ -31,50 +30,54 @@
     .dark input[type=range].dial::-webkit-slider-thumb{background:#0f172a;border-color:rgba(255,255,255,.25)}
     input[type=range].dial::-moz-range-track{height:10px;border-radius:9999px;background:rgba(0,0,0,.1)}
     input[type=range].dial::-moz-range-thumb{width:26px;height:26px;border-radius:9999px;background:#fff;border:2px solid rgba(0,0,0,.2)}
+    /* LEDs */
     .led{width:12px;height:12px;border-radius:9999px;opacity:.25}
     .led.on{opacity:1}
+    /* perimeter pills */
     .cell{user-select:none}
     .cell .pill{transition:transform .12s ease,opacity .12s ease}
-    .cell.active .pill{transform:scale(2.0)}
+    .cell.active .pill{transform:scale(2.0)} /* strong highlight */
+    /* overlay */
     .count-overlay{backdrop-filter:blur(2px)}
   </style>
 </head>
 <body class="h-full bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-display">
   <div id="app" class="min-h-screen flex flex-col items-center">
-    <!-- Header / Toolbar -->
+    <!-- Header -->
     <header class="w-full max-w-6xl px-4 md:px-6 pt-6 pb-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 shadow-glow"></div>
         <h1 class="text-xl md:text-2xl font-semibold tracking-tight">Circle Practice Clock</h1>
       </div>
-      <div class="flex items-center gap-3">
-        <button id="themeBtn" class="px-3 py-2 rounded-xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 text-sm shadow-sm">
-          <span id="themeLabel">Dark</span>
-        </button>
-      </div>
+      <button id="themeBtn" class="px-3 py-2 rounded-xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 text-sm shadow-sm">
+        <span id="themeLabel">Dark</span>
+      </button>
     </header>
 
-    <!-- Main stage -->
+    <!-- Main -->
     <main class="w-full max-w-6xl px-4 md:px-6 pb-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <!-- Clock / Grid -->
+      <!-- Circle / Grid -->
       <section class="relative aspect-square w-full max-w-[720px] mx-auto rounded-3xl bg-white/80 dark:bg-slate-800/70 shadow-glow border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <!-- Countdown Overlay -->
         <div id="countOverlay" class="hidden absolute inset-0 bg-white/70 dark:bg-slate-900/60 count-overlay flex items-center justify-center">
           <div id="countText" class="text-7xl md:text-8xl font-bold tracking-tight"></div>
         </div>
-
-        <!-- 5x5 Grid -->
         <div id="grid" class="absolute inset-4 grid grid-cols-5 grid-rows-5 gap-2 select-none"></div>
-
-        <!-- Center Note + LEDs -->
         <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <div id="currentNote" class="text-7xl md:text-8xl font-bold tracking-tight drop-shadow-sm"></div>
           <div class="mt-4 flex items-center gap-2" id="ledRow"></div>
         </div>
       </section>
 
-      <!-- Controls -->
-      <section class="w-full">
+      <!-- Action bar (below circle on mobile & desktop) -->
+      <div class="flex items-center justify-center mt-3 lg:mt-4 lg:col-start-1 lg:col-end-2">
+        <div class="flex items-center gap-3">
+          <button id="startBtn" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">Start</button>
+          <button id="stopBtn" class="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100">Stop</button>
+        </div>
+      </div>
+
+      <!-- Controls (forced to right column on desktop) -->
+      <section class="w-full lg:col-start-2 lg:row-start-1">
         <div class="rounded-3xl bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 shadow-glow p-5 md:p-6">
           <div class="flex flex-wrap gap-4 items-center justify-between">
             <div class="flex items-center gap-3">
@@ -86,15 +89,6 @@
               <select id="accMode" class="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm">
                 <option value="flats" selected>♭ (Db, Eb)</option>
                 <option value="sharps">♯ (C#, D#)</option>
-              </select>
-            </div>
-            <div class="flex items-center gap-3">
-              <label class="text-sm text-slate-500 dark:text-slate-400">Chaos</label>
-              <select id="chaos" class="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-sm">
-                <option value="0">0%</option>
-                <option value="5">5%</option>
-                <option value="50">50%</option>
-                <option value="100">100%</option>
               </select>
             </div>
           </div>
@@ -110,7 +104,7 @@
                 <div class="text-xl font-semibold"><span id="tempoVal">100</span> BPM</div>
               </div>
             </div>
-            <!-- Signature -->
+            <!-- Beats per Note -->
             <div class="flex flex-col items-center">
               <div class="h-28 flex items-center justify-center">
                 <input id="signature" type="range" min="1" max="8" value="4" class="dial" />
@@ -145,19 +139,15 @@
             </div>
           </div>
 
-          <!-- Toggles (moved Metronome here) -->
+          <!-- Toggles -->
           <div class="mt-6 flex flex-wrap items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
             <label class="inline-flex items-center gap-2 select-none">
               <input id="metronomeToggle" type="checkbox" class="accent-indigo-600">
               <span>Metronome</span>
             </label>
             <label class="inline-flex items-center gap-2 select-none">
-              <input id="accentToggle" type="checkbox" class="accent-indigo-600" checked>
-              <span>Accent first beat</span>
-            </label>
-            <label class="inline-flex items-center gap-2 select-none">
               <input id="countInToggle" type="checkbox" class="accent-indigo-600" checked>
-              <span>3-2-1 count-in</span>
+              <span>Count in</span>
             </label>
             <label class="inline-flex items-center gap-2 select-none">
               <input id="noteToneToggle" type="checkbox" class="accent-indigo-600">
@@ -166,14 +156,6 @@
           </div>
         </div>
       </section>
-
-      <!-- Start/Stop action bar (moved under circle) -->
-      <div class="lg:col-start-1 flex items-center justify-center -mt-4">
-        <div class="flex items-center gap-3">
-          <button id="startBtn" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">Start</button>
-          <button id="stopBtn" class="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100">Stop</button>
-        </div>
-      </div>
     </main>
   </div>
 
@@ -185,26 +167,27 @@
   function getNotes(mode){ return mode==='sharps' ? NOTES_SHARPS : NOTES_FLATS; }
 
   // UI refs
-  const startNoteSel = document.getElementById('startNote');
-  const accSel       = document.getElementById('accMode');
-  const tempoInput   = document.getElementById('tempo');
-  const tempoVal     = document.getElementById('tempoVal');
-  const sigInput     = document.getElementById('signature');
-  const sigVal       = document.getElementById('sigVal');
-  const intInput     = document.getElementById('intervalSteps');
-  const intVal       = document.getElementById('intVal');
-  const dirDownBtn   = document.getElementById('dirDown');
-  const dirUpBtn     = document.getElementById('dirUp');
-  const dirLabel     = document.getElementById('dirLabel');
-  const chaosSel     = document.getElementById('chaos');
-  const metronomeToggle = document.getElementById('metronomeToggle');
-  const accentToggle    = document.getElementById('accentToggle');
-  const countInToggle   = document.getElementById('countInToggle');
-  const noteToneToggle  = document.getElementById('noteToneToggle');
+  const startNoteSel   = document.getElementById('startNote');
+  const accSel         = document.getElementById('accMode');
+  const tempoInput     = document.getElementById('tempo');
+  const tempoVal       = document.getElementById('tempoVal');
+  const sigInput       = document.getElementById('signature');
+  const sigVal         = document.getElementById('sigVal');
+  const intInput       = document.getElementById('intervalSteps');
+  const intVal         = document.getElementById('intVal');
+  const dirDownBtn     = document.getElementById('dirDown');
+  const dirUpBtn       = document.getElementById('dirUp');
+  const dirLabel       = document.getElementById('dirLabel');
+  const metronomeToggle= document.getElementById('metronomeToggle');
+  const countInToggle  = document.getElementById('countInToggle');
+  const noteToneToggle = document.getElementById('noteToneToggle');
+  const currentNoteEl  = document.getElementById('currentNote');
+  const ledRow         = document.getElementById('ledRow');
+  const gridEl         = document.getElementById('grid');
 
-  const currentNoteEl = document.getElementById('currentNote');
-  const ledRow        = document.getElementById('ledRow');
-  const gridEl        = document.getElementById('grid');
+  // (Chaos UI removed; keep backend support safely defaulting to 0)
+  const chaosSel = document.getElementById('chaos'); // may not exist
+  function getChaosPct(){ return chaosSel ? Number(chaosSel.value) : 0; }
 
   // Build Start Note options
   function populateStartNotes(){
@@ -216,20 +199,17 @@
 
   // Perimeter layout (clockwise)
   const POSITIONS = [[1,2],[1,3],[1,4],[2,5],[3,5],[4,5],[5,4],[5,3],[5,2],[4,1],[3,1],[2,1]];
-  const START_POS = 1; // top-center index in POSITIONS
+  const START_POS = 1; // top-center
   let perimeterCells = [];
 
   // State
-  let direction = +1; // +1 up, -1 down
-  let currentIndex = getNotes(accSel.value).indexOf(startNoteSel.value);
-  let posCursor = START_POS;
+  let direction   = +1;
+  let currentIndex= getNotes(accSel.value).indexOf(startNoteSel.value);
+  let posCursor   = START_POS;
 
   function currentNotesArr(){ return getNotes(accSel.value); }
   function currentNoteName(){ return currentNotesArr()[currentIndex]; }
-  function setCurrentByName(name){
-    const idx = currentNotesArr().indexOf(name);
-    if(idx!==-1) currentIndex = idx;
-  }
+  function setCurrentByName(name){ const i=currentNotesArr().indexOf(name); if(i!==-1) currentIndex=i; }
 
   function buildGrid(){
     gridEl.innerHTML=''; perimeterCells=[];
@@ -253,7 +233,7 @@
             currentNoteEl.textContent = currentNoteName();
           });
           perimeterCells[idx]=pill;
-        }else{
+        } else {
           cell.classList.add('opacity-40');
         }
         gridEl.appendChild(cell);
@@ -301,8 +281,7 @@
     const prevName = currentNoteName();
     populateStartNotes();
     setCurrentByName(prevName);
-    recalcRing();
-    renderCenter();
+    recalcRing(); renderCenter();
   });
 
   startNoteSel.addEventListener('change',()=>{
@@ -327,7 +306,7 @@
     dots.forEach((d,i)=>d.style.backgroundColor = i===activeIdx ? 'rgb(99 102 241)' : '');
   }
 
-  // Initial paint
+  // Initial render
   buildLEDs();
   posCursor = START_POS;
   recalcRing();
@@ -344,7 +323,7 @@
 
   function secondsPerBeat(){ return 60/Number(tempoInput.value); }
 
-  function scheduleClick(time, accented=false){
+  function scheduleClick(time, accented=true){  // accent always on (no UI)
     if(!audioCtx) return;
     const osc = audioCtx.createOscillator();
     const gain= audioCtx.createGain();
@@ -357,28 +336,24 @@
     osc.start(time); osc.stop(time+0.06);
   }
 
-  // Note tone (defaults aligned with your tweak)
+  // Note tone (1s, 0.25 vol as per your tweak)
   function scheduleNoteTone(noteIndex, time){
     if(!audioCtx || !noteToneToggle.checked) return;
-    let n = noteIndex - 9;           // A index = 9
+    let n = noteIndex - 9; // A index = 9
     if (n > 6) n -= 12;
     if (n < -6) n += 12;
     const freq = 440 * Math.pow(2, n/12);
 
     const osc = audioCtx.createOscillator();
     const gain= audioCtx.createGain();
-    osc.type = 'sine';
-    const dur = 1.0;   // 1 second
-    const vol = 0.25;  // louder as requested
-
+    const dur = 1.0, vol = 0.25;
+    osc.type='sine';
     osc.frequency.setValueAtTime(freq, time);
     gain.gain.setValueAtTime(0.0001, time);
     gain.gain.exponentialRampToValueAtTime(vol, time + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, time + dur);
-
     osc.connect(gain).connect(audioCtx.destination);
-    osc.start(time);
-    osc.stop(time + dur + 0.05);
+    osc.start(time); osc.stop(time + dur + 0.05);
   }
 
   function scheduler(){
@@ -387,10 +362,10 @@
       const spb = secondsPerBeat();
       const inCountIn = countInBeatsLeft>0;
       const beatsPerNote = Number(sigInput.value);
-      const isDownbeat = beatCount % beatsPerNote === 0;
+      const isDownbeat = (beatCount % beatsPerNote) === 0;
 
       if(metronomeToggle.checked){
-        const accented = inCountIn || (accentToggle.checked && isDownbeat);
+        const accented = inCountIn || isDownbeat; // accent always on
         scheduleClick(nextBeatTime, accented);
       }
 
@@ -400,14 +375,14 @@
         overlayText.textContent = show.toString();
         overlay.classList.remove('hidden');
         countInBeatsLeft -= 1;
-        if(countInBeatsLeft===0){ beatCount = 0; }
+        if(countInBeatsLeft===0){ beatCount = 0; } // first post-count-in beat = LED 0
       }else{
         overlay.classList.add('hidden');
         renderLEDs(ledIndex);
 
         if (ledIndex === 0) {
           if (beatCount === 0) {
-            // First downbeat after count-in: beep current, no advance yet
+            // first downbeat after count-in: beep current, no advance yet
             scheduleNoteTone(currentIndex, nextBeatTime);
           } else {
             advanceNoteAndRing();
@@ -424,7 +399,7 @@
 
   function advanceNoteAndRing(){
     posCursor = (posCursor + 1) % 12;
-    const chaosPct = Number(chaosSel.value);
+    const chaosPct = getChaosPct();
     if(chaosPct>0 && Math.random()*100 < chaosPct){
       let r; do{ r=Math.floor(Math.random()*12); } while(r===currentIndex);
       currentIndex = r;
@@ -432,8 +407,7 @@
       const step = Number(intInput.value) * (direction>0?1:-1);
       currentIndex = mod(currentIndex + step, 12);
     }
-    recalcRing();
-    renderCenter();
+    recalcRing(); renderCenter();
   }
 
   function start(){
@@ -441,8 +415,7 @@
     if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
     setCurrentByName(startNoteSel.value);
     posCursor = START_POS;
-    recalcRing();
-    renderCenter();
+    recalcRing(); renderCenter();
     renderLEDs(-1);
     beatCount = 0;
     countInBeatsLeft = countInToggle.checked ? 3 : 0;
@@ -466,7 +439,7 @@
 
   sigInput.addEventListener('change', ()=>{ buildLEDs(); renderLEDs(-1); });
 
-  // Theme toggle
+  // Theme
   const themeBtn = document.getElementById('themeBtn');
   const themeLabel = document.getElementById('themeLabel');
   themeBtn.addEventListener('click', ()=>{
