@@ -421,8 +421,8 @@
     const osc = audioCtx.createOscillator();
     const gain= audioCtx.createGain();
     osc.type = 'sine';
-    const dur = 0.7;                       // short, simple beep
-    const vol = 0.12;                       // conservative mix with metronome
+    const dur = 2.0;                       // short, simple beep
+    const vol = 0.2;                       // conservative mix with metronome
 
     osc.frequency.setValueAtTime(freq, time);
     gain.gain.setValueAtTime(0.0001, time);
