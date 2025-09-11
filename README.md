@@ -2,6 +2,8 @@
 
 A fun way to practice your chord-changing chops. Just set your interval, hit start and try to keep up! Also serves as a simple metronome, circle of 5ths (or any interval your ears desire).
 
+Try it here: https://notify-nsvc.onrender.com/
+
 **Why it’s useful**
 
 - See the next 12 notes around the perimeter.
