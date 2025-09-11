@@ -1,4 +1,4 @@
-**Notify | Metronome Meets Circle of Fifths**
+**Notify | Chord Practice Clock**
 
 A fun way to practice your chord-changing chops. Just set your interval, hit start and try to keep up! Also serves as a simple metronome, circle of 5ths (or any interval your ears desire).
 
